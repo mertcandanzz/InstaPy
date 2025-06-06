@@ -2524,30 +2524,52 @@ def take_rotative_screenshot(browser, logfolder):
 
 
 def get_query_hash(browser, logger, edge_followed_by):
-    """
-    Load Instagram JS file and find query hash code
+    """Extract the GraphQL query hash dynamically.
+
+    The hash used for GraphQL queries is stored inside one of Instagram's
+    javascript bundles.  The path to this bundle changes regularly so it is
+    extracted from the page source at runtime.
 
     :param browser: webdriver instance
     :param logger: the logger instance
-    :param edge_followed_by: query hash flag, edge_followed_by or edge_follow
-    :return: query hash
+    :param edge_followed_by: query hash flag, ``True`` for ``edge_followed_by``
+        otherwise ``edge_follow``
+    :return: query hash or ``None`` if it couldn't be found
     """
-    link = "https://www.instagram.com/static/bundles/es6/Consumer.js/1f67555edbd3.js"
-    web_address_navigator(browser, link)
+
+    # Load the instagram landing page to obtain the current script urls
+    web_address_navigator(browser, "https://www.instagram.com/")
+
+    consumer_js = None
+    soup = BeautifulSoup(browser.page_source, "html.parser")
+    for script in soup.find_all("script", src=True):
+        if "Consumer.js" in script["src"]:
+            consumer_js = script["src"]
+            break
+
+    if not consumer_js:
+        logger.warning("Consumer.js path not found")
+        return None
+
+    if consumer_js.startswith("/"):
+        consumer_js = "https://www.instagram.com" + consumer_js
+
+    web_address_navigator(browser, consumer_js)
     page_source = browser.page_source
+
     # There are two query hash, one for followers and following, ie:
     # t="c76146de99bb02f6415203be841dd25a",n="d04b0a864b4b54837c0d870b0e77e076"
     if edge_followed_by:
-        pattern_hash = '[a-z0-9]{32}(?=",n=")'  # Used to query: edge_followed_by
+        pattern_hash = r"[a-z0-9]{32}(?=\",n=\")"  # Used to query: edge_followed_by
     else:
-        pattern_hash = '[a-z0-9]{32}(?=",u=1)'  # Used to query: edge_follow
-    # locate pattern value from JS file
-    # sequence of 32 words and/or numbers just before ,n=" value
-    hash = re.findall(pattern_hash, page_source)
-    if hash:
-        return hash[0]
-    else:
-        logger.warning("Query Hash not found")
+        pattern_hash = r"[a-z0-9]{32}(?=\",u=1)"  # Used to query: edge_follow
+
+    hashes = re.findall(pattern_hash, page_source)
+    if hashes:
+        return hashes[0]
+
+    logger.warning("Query Hash not found")
+    return None
 
 
 def file_handling(file):
