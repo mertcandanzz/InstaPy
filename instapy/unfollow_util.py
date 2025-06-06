@@ -1106,7 +1106,7 @@ def get_given_user_following(
 
                 except (NoSuchElementException, IndexError):
                     logger.error(
-                        "\nError occured during getting the following count "
+                        "\nError occurred during getting the following count "
                         "of '{}'\n".format(user_name)
                     )
                     return [], []
