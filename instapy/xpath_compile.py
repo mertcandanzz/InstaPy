@@ -16,16 +16,16 @@
 xpath = {}
 
 xpath["bypass_suspicious_login"] = {
-    "bypass_with_sms_option": "//label[contains(text(),'Phone:')]",
-    "bypass_with_email_option": "//label[contains(text(),'Email:')]",
-    "send_security_code_button": "//button[text()='Send Security Code']",
-    "security_code_field": "//input[@id='security_code']",
-    "submit_security_code_button": "//button[text()='Submit']",
-    "wrong_login": "//p[text()='Please check the code we sent you and try again.']",
+    "bypass_with_sms_option": "//label[contains(text(),'Phone')]",
+    "bypass_with_email_option": "//label[contains(text(),'Email')]",
+    "send_security_code_button": "//button[contains(text(),'Send') and contains(text(),'code')]",
+    "security_code_field": "//input[@id='security_code' or @name='security_code' or @name='securityCode']",
+    "submit_security_code_button": "//button[contains(text(),'Submit') or contains(text(),'Confirm')]",
+    "wrong_login": "//p[contains(text(),'check the code')]",
 }
 
 xpath["dismiss_this_was_me"] = {
-    "this_was_me_button": "//button[@name='choice'][text()='This Was Me']"
+    "this_was_me_button": "//button[@name='choice'][contains(., 'This Was Me')]"
 }
 
 xpath["class_selectors"] = {
@@ -182,8 +182,14 @@ xpath["login_user"] = {
     "add_phone_number": "//h2[text()='Add Your Phone Number']",
     "suspicious_login_attempt": "//p[text()='Suspicious Login Attempt']",
     "error_alert": "//p[@id='slfErrorAlert']",
-    "verification_code": "//input[@name='verificationCode']",
-    "confirm": "//button[text()='Confirm']",
+    "verification_code": (
+        "//input[@name='verificationCode' or @id='security_code' or "
+        "@autocomplete='one-time-code']"
+    ),
+    "confirm": (
+        "//button[text()='Confirm' or contains(text(),'Log In') or "
+        "contains(text(),'Submit')]"
+    ),
 }
 
 xpath["open_comment_section"] = {
