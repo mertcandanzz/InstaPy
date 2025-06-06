@@ -41,10 +41,16 @@ InstaPy detects automatically if the account is protected with the Two Factor Au
 Security codes can be found in: `Settings` -> `Security` -> `Two-Factor-Authentication` -> `Backup Codes`
 
 ```python
-InstaPy(username=insta_username,
-        password=insta_password,
-        security_codes=["01234567", "76543210", "01237654"],)
+InstaPy(
+    username=insta_username,
+    password=insta_password,
+    security_codes=["01234567", "76543210", "01237654"],
+)
 ```
+
+Alternatively, provide your TOTP secret in the environment variable
+`IG_TOTP_SECRET` to generate codes automatically. For one-time manual
+codes, set `IG_SECURITY_CODE` before starting the session.
 
 <ins
   class="adsbygoogle"

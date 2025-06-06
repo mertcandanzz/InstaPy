@@ -5,6 +5,7 @@ import socket
 import os
 import json
 import random
+from typing import List, Optional
 
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
@@ -23,6 +24,39 @@ from .xpath import read_xpath
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import WebDriverException
 from selenium.common.exceptions import MoveTargetOutOfBoundsException
+
+
+def _generate_totp(logger) -> Optional[str]:
+    secret = os.getenv("IG_TOTP_SECRET")
+    if not secret:
+        return None
+    try:
+        import pyotp
+
+        return pyotp.TOTP(secret).now()
+    except Exception as exc:
+        logger.warning(f"Could not generate TOTP: {exc}")
+        return None
+
+
+def _request_security_code(logger, codes: Optional[List[str]] = None) -> str:
+    env_code = os.getenv("IG_SECURITY_CODE")
+    if env_code:
+        logger.info("- Using security code from environment")
+        return env_code.strip()
+
+    totp_code = _generate_totp(logger)
+    if totp_code:
+        logger.info("- Using TOTP generated security code")
+        return totp_code
+
+    if codes:
+        for item in codes:
+            if item and item.isdigit():
+                logger.info("- Using provided recovery code")
+                return item
+
+    return input("Type the security code here: ").strip()
 
 
 def bypass_suspicious_login(
@@ -80,21 +114,19 @@ def bypass_suspicious_login(
 
     security_code = None
     try:
-        path = "{}state.json".format(logfolder)
+        path = f"{logfolder}state.json"
         data = {}
-        # check if file exists and has content
         if os.path.isfile(path) and os.path.getsize(path) > 0:
-            # load JSON file
             with open(path, "r") as json_file:
                 data = json.load(json_file)
-
-        # update connection state
         security_code = data["challenge"]["security_code"]
     except Exception:
-        logger.info("Security Code not present in {}state.json file".format(logfolder))
+        logger.info(
+            "Security Code not present in {}state.json file".format(logfolder)
+        )
 
     if security_code is None:
-        security_code = input("Type the security code here: ")
+        security_code = _request_security_code(logger)
 
     security_code_field = browser.find_element_by_xpath(
         read_xpath(bypass_suspicious_login.__name__, "security_code_field")
@@ -620,12 +652,9 @@ def two_factor_authentication(browser, logger, security_codes):
 
         logger.info("- Two Factor Authentication is enabled...")
 
-        # Chose one code from the security_codes list
-        # 0000 is used if no codes were provided in constructor.
-        code = random.choice(security_codes)
+        code = _request_security_code(logger, security_codes)
 
         try:
-            # Check Security code is numeric
             int(code)
 
             verification_code = read_xpath(login_user.__name__, "verification_code")
